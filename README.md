@@ -25,7 +25,7 @@ ReSpark(글로벌 완구 중고거래 플랫폼)의 **구매/배송 서비스**�
 | 언어 / 프레임워크 | Java 17, Spring Boot 4.0.10 |
 | 빌드 | Gradle |
 | 데이터베이스 | MySQL, Spring Data JPA |
-| 보안 | Spring Security, JWT (jjwt 0.12.6) |
+| 보안 | Gateway JWT 검증 · 서비스는 비즈니스 권한 검증 |
 | API 문서 | springdoc-openapi (Swagger UI) |
 | 기타 | Lombok |
 | CI/CD | GitHub Actions, Docker |
@@ -60,27 +60,10 @@ backend-purchase-delivery
 ├── docs/
 │   ├── project-overview.md   # 아키텍처 개요
 │   ├── feature-spec.md       # 기능 명세서
-│   ├── api-spec.md           # API 정의서
-│   └── schema.sql            # DB 스키마 (trade, fulfillment)
+│   └── api-spec.md           # API 정의서
 └── src/main/java/com/spark/backend_purchase_delivery/
-    ├── BackendPurchaseDeliveryApplication.java
-    └── common/
-        ├── config/           # SwaggerConfig
-        ├── entity/           # BaseEntity (createdAt, updatedAt)
-        └── error/            # 공통 예외 처리
+    └── BackendPurchaseDeliveryApplication.java
 ```
-
-### 공통 에러 처리 (`common/error`)
-
-| 클래스 | 역할 |
-| :--- | :--- |
-| `ErrorCode` | HTTP 상태, 에러 코드, 메시지 정의 |
-| `ErrorResponseDto` | 에러 응답 바디 (`timestamp`, `status`, `code`, `message`) |
-| `BusinessException` | 비즈니스 예외 |
-| `CustomSecurityException` | 보안 관련 예외 |
-| `GlobalExceptionHandler` | 예외를 `ErrorCode` 기반 응답으로 변환 |
-| `CustomAuthenticationEntryPoint` | 인증 실패(401) 응답 |
-| `CustomAccessDeniedHandler` | 권한 없음(403) 응답 |
 
 ## 실행 방법
 
@@ -98,7 +81,7 @@ backend-purchase-delivery
 | `DB_USERNAME` | DB 사용자 | `local_user` |
 | `DB_PASSWORD` | DB 비밀번호 | (로컬 값) |
 
-스키마 생성은 `docs/schema.sql`을 참고한다. `trade`와 `fulfillment`를 분리해 둔다.
+로컬 DB는 `trade` 스키마를 기준으로 한다. 인프라 MySQL 계정/스키마 생성은 평일 인프라 설정 때 진행한다.
 
 ### 실행
 

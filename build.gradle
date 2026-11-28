@@ -46,12 +46,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 
-	// Spring Security
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-
-	// JWT
-	implementation 'io.jsonwebtoken:jjwt:0.12.6'
 }
 
 tasks.named('test') {

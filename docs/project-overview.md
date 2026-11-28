@@ -41,6 +41,6 @@
 | 언어 / 프레임워크 | Java 17, Spring Boot 4.0.10 |
 | 빌드 | Gradle |
 | 데이터베이스 | MySQL, Spring Data JPA |
-| 보안 | Spring Security, JWT (jjwt 0.12.6) |
+| 보안 | Gateway JWT 검증 · 서비스는 비즈니스 권한 검증 |
 | API 문서 | springdoc-openapi (Swagger UI) |
 | CI/CD | GitHub Actions, Docker |

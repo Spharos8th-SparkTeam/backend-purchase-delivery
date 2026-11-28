@@ -1,0 +1,70 @@
+name: Java CI with Gradle
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ["main", "develop"]
+
+permissions:
+  contents: read
+
+jobs:
+  CI-CD:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: docker build & docker hub push
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker build -t "${{ secrets.DOCKER_USERNAME }}/purchase-delivery-service:${{ github.run_number }}" .
+          docker push "${{ secrets.DOCKER_USERNAME }}/purchase-delivery-service:${{ github.run_number }}"
+
+  Deploy-Prod:
+    needs: CI-CD
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Purchase Delivery Service to AWS
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          IMAGE_TAG: ${{ github.run_number }}
+          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL_PROD }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USERNAME_PROD }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
+        with:
+          host: ${{ secrets.HOST_EC2 }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          port: 22
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD,IMAGE_TAG,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD
+          script: |
+            set -eu
+            IMAGE="$DOCKER_USERNAME/purchase-delivery-service:$IMAGE_TAG"
+            : "${SPRING_DATASOURCE_URL:?DB URL missing}"
+            : "${SPRING_DATASOURCE_USERNAME:?DB username missing}"
+            : "${SPRING_DATASOURCE_PASSWORD:?DB password missing}"
+            echo "$DOCKER_PASSWORD" | docker login \
+              -u "$DOCKER_USERNAME" \
+              --password-stdin
+            docker pull "$IMAGE"
+            docker network inspect spharos >/dev/null 2>&1 \
+              || docker network create spharos
+            docker rm -f purchase-delivery-service 2>/dev/null || true
+            docker run -d \
+              --name purchase-delivery-service \
+              --restart unless-stopped \
+              --network spharos \
+              -e SPRING_DATASOURCE_URL \
+              -e SPRING_DATASOURCE_USERNAME \
+              -e SPRING_DATASOURCE_PASSWORD \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              "$IMAGE"
+            test "$(docker inspect -f '{{.State.Running}}' purchase-delivery-service)" = true
+            docker ps --filter "name=^/purchase-delivery-service$"
+            docker logs --tail 50 purchase-delivery-service
